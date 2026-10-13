@@ -8,11 +8,13 @@ import {
   getWinningLine,
   isFull,
 } from "./game";
-import { bestMove } from "./ai";
+import { bestMove, randomMove } from "./ai";
 
 const HUMAN: Player = "X";
 const AI: Player = "O";
 const AI_DELAY_MS = 300;
+type Difficulty = "easy" | "medium" | "hard";
+let difficulty: Difficulty = "hard";
 
 // ─── State ──────────────────────────────────────────────────
 let board: Board = emptyBoard();
@@ -28,11 +30,23 @@ app.innerHTML = `
   <div id="status" class="status"></div>
   <div id="board" class="board"></div>
   <button id="reset" class="reset">Reset</button>
+  <div class="controls">
+  <label for="difficulty">Difficulty:</label>
+  <select id="difficulty">
+    <option value="easy">Easy</option>
+    <option value="medium">Medium</option>
+    <option value="hard" selected>Hard</option>
+  </select>
+</div>
 `;
 
 const statusEl = document.querySelector<HTMLDivElement>("#status")!;
 const boardEl = document.querySelector<HTMLDivElement>("#board")!;
 const resetEl = document.querySelector<HTMLButtonElement>("#reset")!;
+const difficultyEl = document.querySelector<HTMLSelectElement>("#difficulty")!;
+difficultyEl.addEventListener("change", () => {
+  difficulty = difficultyEl.value as Difficulty;
+});
 
 // Build the 9 buttons once. We only update their contents on render.
 const cellEls: HTMLButtonElement[] = [];
@@ -89,10 +103,20 @@ function advanceTurn(): void {
 }
 
 function playAiTurn(): void {
-  const move = bestMove(board, AI);
+  const move = chooseAiMove();
   board = applyMove(board, move, AI);
   isThinking = false;
   advanceTurn();
+}
+
+function chooseAiMove(): number {
+  if (difficulty === "easy") {
+    return randomMove(board);
+  }
+  if (difficulty === "medium") {
+    return Math.random() < 0.5 ? randomMove(board) : bestMove(board, AI, true);
+  }
+  return bestMove(board, AI, true); // hard
 }
 
 // ─── Render ─────────────────────────────────────────────────
