@@ -12,6 +12,13 @@ import { getWinner, isFull, emptyCells, applyMove } from "./game";
 export const AI: Player = "O";
 export const HUMAN: Player = "X";
 
+/** Picks uniformly at random among empty cells. Used for the easy level. */
+export function randomMove(b: Board): number {
+  const cells = emptyCells(b);
+  if (cells.length === 0) throw new Error("randomMove: no moves available");
+  return cells[Math.floor(Math.random() * cells.length)];
+}
+
 /**
  * Value of `board` to the AI, assuming `toMove` plays next.
  * Always from the AI's perspective — not the mover's.
@@ -50,21 +57,27 @@ export function minimax(b: Board, toMove: Player, depth: number): number {
 // Center, then corners, then edges. Purely a tie-break — minimax decides the score.
 const CELL_PRIORITY = [4, 0, 2, 6, 8, 1, 3, 5, 7] as const;
 
-export function bestMove(b: Board, ai: Player = AI): number {
+export function bestMove(b: Board, ai: Player = AI, randomize = false): number {
   const human = other(ai);
-  const ordered = CELL_PRIORITY.filter((i) => b[i] === null);
-  if (ordered.length === 0) throw new Error("bestMove: no moves available");
+  const cells = CELL_PRIORITY.filter((i) => b[i] === null);
+  if (cells.length === 0) throw new Error("bestMove: no moves available");
 
   let bestScore = -Infinity;
-  let best = ordered[0];
+  const tied: number[] = [];
 
-  for (const i of ordered) {
+  for (const i of cells) {
     const score = minimax(applyMove(b, i, ai), human, 1);
     if (score > bestScore) {
-      // strict >, so first in priority wins ties
       bestScore = score;
-      best = i;
+      tied.length = 0;
+      tied.push(i);
+    } else if (score === bestScore) {
+      tied.push(i);
     }
   }
-  return best;
+
+  if (randomize && tied.length > 1) {
+    return tied[Math.floor(Math.random() * tied.length)];
+  }
+  return tied[0];
 }
