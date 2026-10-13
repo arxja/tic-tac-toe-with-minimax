@@ -1,17 +1,33 @@
 import * as readline from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import type { Board, Player } from "./src/types";
+import { other } from "./src/types";
 import {
   emptyBoard,
   applyMove,
   getWinner,
   getWinningLine,
   isFull,
+  emptyCells,
 } from "./src/game";
-import { bestMove } from "./src/ai";
+import { bestMove, randomMove } from "./src/ai";
 
 const HUMAN: Player = "X";
 const AI: Player = "O";
+
+type Difficulty = "easy" | "medium" | "hard";
+
+const args = process.argv.slice(2);
+const randomize = args.includes("--random");
+const diffArg = args.find((a) => a.startsWith("--difficulty="));
+const difficulty: Difficulty = (diffArg?.split("=")[1] as Difficulty) ?? "hard";
+
+if (!["easy", "medium", "hard"].includes(difficulty)) {
+  console.error(
+    `Unknown difficulty: ${difficulty}. Use easy, medium, or hard.`,
+  );
+  process.exit(1);
+}
 
 function render(b: Board): string {
   const cell = (i: number) => b[i] ?? String(i); // show index if empty
@@ -29,6 +45,16 @@ function parseMove(input: string, b: Board): number | null {
   if (!/^[0-8]$/.test(trimmed)) return null;
   const i = Number(trimmed);
   return b[i] === null ? i : null;
+}
+
+function chooseAiMove(board: Board): number {
+  if (difficulty === "easy") return randomMove(board);
+  if (difficulty === "medium") {
+    return Math.random() < 0.5
+      ? randomMove(board)
+      : bestMove(board, AI, randomize);
+  }
+  return bestMove(board, AI, randomize);
 }
 
 async function promptMove(rl: readline.Interface, b: Board): Promise<number> {
@@ -65,7 +91,7 @@ async function playGame(rl: readline.Interface): Promise<void> {
     if (getWinner(board) || isFull(board)) break;
 
     // AI's turn
-    const aiMove = bestMove(board, AI);
+    const aiMove = chooseAiMove(board);
     board = applyMove(board, aiMove, AI);
     console.log(`AI plays ${aiMove}.\n`);
     console.log(render(board) + "\n");
@@ -83,6 +109,9 @@ async function main(): Promise<void> {
   const rl = readline.createInterface({ input: stdin, output: stdout });
   try {
     while (true) {
+      console.log(
+        `\nNew game. You are X, AI is O. (difficulty: ${difficulty}${randomize ? ", randomized ties" : ""})\n`,
+      );
       await playGame(rl);
       const again = (await rl.question("\nPlay again? (y/n): "))
         .trim()

@@ -9,7 +9,10 @@
     "preview": "vite preview",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "play": "tsx cli.ts"
+    "play": "tsx cli.ts",
+    "play:easy": "tsx cli.ts --difficulty=easy",
+    "play:medium": "tsx cli.ts --difficulty=medium",
+    "play:random": "tsx cli.ts --random"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
